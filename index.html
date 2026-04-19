@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NIMIDICE - 3D Dice Game</title>
     <style>
         body {
@@ -132,7 +133,7 @@
     
     <div id="titleScreen">
         <div class="title-text">NIMIDICE</div>
-        <div class="start-text">Press ENTER to Start</div>
+        <div class="start-text">Tap or Press Any Key</div>
     </div>
 
     <div id="resultText"></div>
@@ -354,8 +355,9 @@
         const uiEl = document.getElementById('ui');
 
         // Enterキーでゲーム開始
-        window.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' && isEngineLoaded && !isGameStarted) {
+// 任意のキー、マウスクリック、スマホのタップでゲーム開始
+        function startGame() {
+            if (isEngineLoaded && !isGameStarted) {
                 isGameStarted = true;
                 titleScreenEl.style.opacity = '0';
                 
@@ -364,7 +366,10 @@
                     uiEl.style.display = 'block';
                 }, 500);
             }
-        });
+        }
+        window.addEventListener('keydown', startGame);
+        window.addEventListener('mousedown', startGame);
+        window.addEventListener('touchstart', startGame);
 
         // サイコロを振る処理（ランダムオンリー）
         function rollDice() {
@@ -457,7 +462,7 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        window.addEventListener('click', (event) => {
+        window.addEventListener('pointerdown', (event) => {
             if (!isGameStarted || event.target.id === 'rollBtn') return;
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
