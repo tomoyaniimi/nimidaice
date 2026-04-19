@@ -36,7 +36,6 @@
             display: none; 
         }
         .title-text {
-            /* 画面幅に応じてスケールし、最大100px、最小40px */
             font-size: clamp(40px, 12vw, 100px);
             color: #fff;
             font-weight: bold;
@@ -196,7 +195,7 @@
         // --- 物理エンジンのセットアップ ---
         const world = new CANNON.World();
         function setupPhysicsWorld(targetWorld) {
-            targetWorld.gravity.set(0, -20, 0); // 少し重力を強めて安定させる
+            targetWorld.gravity.set(0, -20, 0); 
             targetWorld.solver.iterations = 30;
             const defaultMat = new CANNON.Material();
             const contactMat = new CANNON.ContactMaterial(defaultMat, defaultMat, {
@@ -233,7 +232,7 @@
 
         const rimGeo = new THREE.TorusGeometry(15.75, 0.25, 16, 64);
         const rimMat = new THREE.MeshStandardMaterial({ color: bowlOuterColor });
-        rimMesh = new THREE.Mesh(rimGeo, rimMat);
+        const rimMesh = new THREE.Mesh(rimGeo, rimMat); // 修正箇所: const を追加しました
         rimMesh.rotation.x = Math.PI / 2;
         rimMesh.position.y = 8;
         bowlGroup.add(rimMesh);
@@ -254,7 +253,7 @@
             const segments = 24;
             const r_bottom = 10.5; 
             const r_top = 14.5;    
-            const wall_height = 60; // 画面外まで突き抜ける高さにして脱走を防ぐ
+            const wall_height = 60; 
             const angleStep = (Math.PI * 2) / segments;
 
             for (let i = 0; i < segments; i++) {
