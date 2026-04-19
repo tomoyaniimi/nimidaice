@@ -36,10 +36,12 @@
             display: none; 
         }
         .title-text {
-            font-size: 100px;
+            /* 変更: 画面幅に応じて文字サイズを自動縮小し、見切れを防ぐ */
+            font-size: min(10vw, 100px); 
             color: #fff;
             font-weight: bold;
-            letter-spacing: 15px;
+            /* 変更: 文字間隔も画面幅に合わせる */
+            letter-spacing: min(1.5vw, 15px); 
             margin-bottom: 30px;
             text-shadow: 0 0 30px rgba(217, 83, 79, 0.8);
         }
@@ -84,7 +86,8 @@
             top: 15%;
             left: 50%;
             transform: translateX(-50%) scale(0);
-            font-size: 100px;
+            /* 変更: 画面幅に応じて文字サイズを自動縮小し、見切れを防ぐ */
+            font-size: min(13vw, 100px); 
             font-weight: bold;
             white-space: nowrap;
             pointer-events: none;
@@ -150,7 +153,9 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a1a);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        // 変更: 初期化時にアスペクト比を計算し、縦画面なら視野角(FOV)を広げて全体を映す
+        const initialAspect = window.innerWidth / window.innerHeight;
+        const camera = new THREE.PerspectiveCamera(Math.max(45, 45 / initialAspect), initialAspect, 0.1, 100);
         camera.position.set(0, 25, 16);
         camera.lookAt(0, 2, 0);
 
@@ -354,7 +359,7 @@
         const resultTextEl = document.getElementById('resultText');
         const uiEl = document.getElementById('ui');
 
-// 任意のキー、マウスクリック、スマホのタップでゲーム開始
+        // 任意のキー、マウスクリック、スマホのタップでゲーム開始
         function startGame() {
             if (isEngineLoaded && !isGameStarted) {
                 isGameStarted = true;
@@ -461,7 +466,7 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-	window.addEventListener('pointerdown', (event) => {
+        window.addEventListener('pointerdown', (event) => {
             if (!isGameStarted || event.target.id === 'rollBtn') return;	
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -484,8 +489,11 @@
             }
         });
 
+        // 変更: ウィンドウのリサイズ時にもアスペクト比を計算し、視野角をリアルタイム更新する
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.aspect = aspect;
+            camera.fov = Math.max(45, 45 / aspect);
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
