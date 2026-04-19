@@ -11,17 +11,18 @@
             background-color: #1a1a1a;
             font-family: sans-serif;
             user-select: none;
+            touch-action: none;
         }
         #loading {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             color: #fff;
-            font-size: 24px;
+            font-size: 20px;
             z-index: 200;
         }
         
-        /* タイトル画面のスタイル */
+        /* タイトル画面 */
         #titleScreen {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -32,38 +33,41 @@
             align-items: center;
             z-index: 100;
             transition: opacity 0.5s ease;
-            /* ロード完了までは非表示 */
             display: none; 
         }
         .title-text {
-            font-size: 100px;
+            /* 画面幅に応じてスケールし、最大100px、最小40px */
+            font-size: clamp(40px, 12vw, 100px);
             color: #fff;
             font-weight: bold;
-            letter-spacing: 15px;
-            margin-bottom: 30px;
-            text-shadow: 0 0 30px rgba(217, 83, 79, 0.8);
+            letter-spacing: 0.1em;
+            margin-bottom: 20px;
+            text-align: center;
+            width: 90%;
+            text-shadow: 0 0 20px rgba(217, 83, 79, 0.8);
         }
         .start-text {
-            font-size: 24px;
+            font-size: clamp(16px, 4vw, 24px);
             color: #ccc;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             animation: blink 1.5s infinite;
         }
 
         #ui {
             position: absolute;
-            bottom: 30px;
+            bottom: 5%;
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
             pointer-events: none;
             display: none;
             z-index: 50;
+            width: 100%;
         }
         #rollBtn {
             pointer-events: auto;
             padding: 15px 40px;
-            font-size: 20px;
+            font-size: clamp(16px, 5vw, 22px);
             font-weight: bold;
             color: #fff;
             background-color: #d9534f;
@@ -73,23 +77,27 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.4);
             transition: background-color 0.2s;
         }
-        #rollBtn:hover { background-color: #c9302c; }
+        #rollBtn:active { transform: scale(0.95); }
         #instruction {
             color: #ccc;
             margin-top: 10px;
-            font-size: 16px;
+            font-size: clamp(12px, 3.5vw, 16px);
         }
+
+        /* 結果表示 */
         #resultText {
             position: absolute;
             top: 15%;
             left: 50%;
             transform: translateX(-50%) scale(0);
-            font-size: 100px;
+            font-size: clamp(40px, 15vw, 100px);
             font-weight: bold;
             white-space: nowrap;
             pointer-events: none;
             display: none;
             z-index: 50;
+            width: 90%;
+            text-align: center;
         }
 
         @keyframes blink {
@@ -98,12 +106,12 @@
         }
         @keyframes popIn {
             0% { transform: translateX(-50%) scale(0); opacity: 0; }
-            50% { transform: translateX(-50%) scale(1.2); opacity: 1; }
+            50% { transform: translateX(-50%) scale(1.1); opacity: 1; }
             100% { transform: translateX(-50%) scale(1); opacity: 1; }
         }
         @keyframes pulse {
             0% { filter: drop-shadow(0 0 10px rgba(255,255,255,0.5)); }
-            100% { filter: drop-shadow(0 0 30px rgba(255,255,0,1)); }
+            100% { filter: drop-shadow(0 0 25px rgba(255,255,0,1)); }
         }
         .show-gray {
             display: block !important;
@@ -140,7 +148,7 @@
     
     <div id="ui">
         <button id="rollBtn">ROLL DICE</button>
-        <div id="instruction">クリックでサイコロをホールド / 解除</div>
+        <div id="instruction">タップしてサイコロをホールド</div>
     </div>
 
     <script type="module">
@@ -150,160 +158,138 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a1a);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 25, 16);
-        camera.lookAt(0, 2, 0);
-
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        // カメラ位置のレスポンシブ調整
+        function adjustCamera() {
+            const aspect = window.innerWidth / window.innerHeight;
+            if (aspect < 1) {
+                // 縦長画面（スマホ）
+                camera.position.set(0, 35, 20);
+                camera.fov = 55;
+            } else {
+                // 横長画面（PC）
+                camera.position.set(0, 25, 16);
+                camera.fov = 45;
+            }
+            camera.aspect = aspect;
+            camera.updateProjectionMatrix();
+        }
+        window.addEventListener('resize', adjustCamera);
+        adjustCamera();
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
-        dirLight.position.set(5, 30, 10);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        dirLight.position.set(5, 40, 10);
         dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = 2048;
-        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
         scene.add(dirLight);
 
         // --- 物理エンジンのセットアップ ---
         const world = new CANNON.World();
-        world.gravity.set(0, -15, 0);
-        world.solver.iterations = 50; 
-        world.solver.tolerance = 0.001;
-        
-        const defaultMat = new CANNON.Material();
-        const contactMat = new CANNON.ContactMaterial(defaultMat, defaultMat, {
-            friction: 0.6,
-            restitution: 0.2 
-        });
-        world.addContactMaterial(contactMat);
+        function setupPhysicsWorld(targetWorld) {
+            targetWorld.gravity.set(0, -20, 0); // 少し重力を強めて安定させる
+            targetWorld.solver.iterations = 30;
+            const defaultMat = new CANNON.Material();
+            const contactMat = new CANNON.ContactMaterial(defaultMat, defaultMat, {
+                friction: 0.5, restitution: 0.2 
+            });
+            targetWorld.addContactMaterial(contactMat);
+            return defaultMat;
+        }
+        const mainDefaultMat = setupPhysicsWorld(world);
 
-        // --- 視覚的な器 ---
+        // --- 器の作成 ---
         const bowlGroup = new THREE.Group();
+        const bowlInnerColor = 0x991111;
+        const bowlOuterColor = 0x111111;
 
-        const outerGeo = new THREE.CylinderGeometry(16, 12, 8, 64, 1, true);
-        const outerMat = new THREE.MeshStandardMaterial({ color: 0x111111, side: THREE.DoubleSide, roughness: 0.7 });
+        const outerGeo = new THREE.CylinderGeometry(16, 12, 8, 48, 1, true);
+        const outerMat = new THREE.MeshStandardMaterial({ color: bowlOuterColor, side: THREE.DoubleSide });
         const outerMesh = new THREE.Mesh(outerGeo, outerMat);
         outerMesh.position.y = 4;
         bowlGroup.add(outerMesh);
 
-        const innerGeo = new THREE.CylinderGeometry(15.5, 11.5, 8, 64, 1, true);
-        const innerMat = new THREE.MeshStandardMaterial({ color: 0x991111, side: THREE.DoubleSide, roughness: 0.5 });
+        const innerGeo = new THREE.CylinderGeometry(15.5, 11.5, 8, 48, 1, true);
+        const innerMat = new THREE.MeshStandardMaterial({ color: bowlInnerColor, side: THREE.DoubleSide });
         const innerMesh = new THREE.Mesh(innerGeo, innerMat);
         innerMesh.position.y = 4;
         bowlGroup.add(innerMesh);
 
-        const innerBotGeo = new THREE.CircleGeometry(11.5, 64);
+        const innerBotGeo = new THREE.CircleGeometry(11.5, 48);
         const innerBotMesh = new THREE.Mesh(innerBotGeo, innerMat);
         innerBotMesh.rotation.x = -Math.PI / 2;
         innerBotMesh.position.y = 0.1;
         innerBotMesh.receiveShadow = true;
         bowlGroup.add(innerBotMesh);
 
-        const outerBotGeo = new THREE.CircleGeometry(12, 64);
-        const outerBotMesh = new THREE.Mesh(outerBotGeo, outerMat);
-        outerBotMesh.rotation.x = Math.PI / 2;
-        outerBotMesh.position.y = 0;
-        outerBotMesh.castShadow = true;
-        bowlGroup.add(outerBotMesh);
-
         const rimGeo = new THREE.TorusGeometry(15.75, 0.25, 16, 64);
-        const rimMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.7 });
-        const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+        const rimMat = new THREE.MeshStandardMaterial({ color: bowlOuterColor });
+        rimMesh = new THREE.Mesh(rimGeo, rimMat);
         rimMesh.rotation.x = Math.PI / 2;
         rimMesh.position.y = 8;
         bowlGroup.add(rimMesh);
-
         scene.add(bowlGroup);
 
-        // --- 物理的な器 ---
+        // --- 物理的な器（見えない壁） ---
         function createPhysicalBowl(targetWorld, mat) {
-            const floorBody = new CANNON.Body({
-                type: CANNON.Body.STATIC,
-                shape: new CANNON.Plane(),
-                material: mat
-            });
+            const floorBody = new CANNON.Body({ type: CANNON.Body.STATIC, shape: new CANNON.Plane(), material: mat });
             floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
             floorBody.position.set(0, 0.3, 0); 
             targetWorld.addBody(floorBody);
 
-            const ceilingBody = new CANNON.Body({
-                type: CANNON.Body.STATIC,
-                shape: new CANNON.Plane(),
-                material: mat
-            });
+            const ceilingBody = new CANNON.Body({ type: CANNON.Body.STATIC, shape: new CANNON.Plane(), material: mat });
             ceilingBody.quaternion.setFromEuler(Math.PI / 2, 0, 0);
-            ceilingBody.position.set(0, 18, 0);
+            ceilingBody.position.set(0, 30, 0);
             targetWorld.addBody(ceilingBody);
 
-            const segments = 32;
+            const segments = 24;
             const r_bottom = 10.5; 
             const r_top = 14.5;    
-            const y_bottom = 0.0;
-            const y_top = 8.0;
-            
-            const slope_angle = Math.atan2(r_top - r_bottom, y_top - y_bottom);
-            const box_h = 40; 
-            const box_d = 5;  
-            
-            const r_center = r_bottom + (box_h / 2) * Math.sin(slope_angle) + (box_d / 2) * Math.cos(slope_angle);
-            const y_center = y_bottom + (box_h / 2) * Math.cos(slope_angle) - (box_d / 2) * Math.sin(slope_angle);
-            const box_w = (2 * Math.PI * r_center / segments) * 1.1; 
+            const wall_height = 60; // 画面外まで突き抜ける高さにして脱走を防ぐ
+            const angleStep = (Math.PI * 2) / segments;
 
             for (let i = 0; i < segments; i++) {
-                const angle = i * Math.PI * 2 / segments;
+                const angle = i * angleStep;
                 const wallBody = new CANNON.Body({
                     type: CANNON.Body.STATIC,
-                    shape: new CANNON.Box(new CANNON.Vec3(box_w / 2, box_h / 2, box_d / 2)),
+                    shape: new CANNON.Box(new CANNON.Vec3(4, wall_height / 2, 2)),
                     material: mat
                 });
-                
-                const qX = new CANNON.Quaternion();
-                qX.setFromEuler(slope_angle, 0, 0);
-                
-                const qY = new CANNON.Quaternion();
-                qY.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), angle);
-                
+                const slope = Math.atan2(r_top - r_bottom, 8);
+                const qX = new CANNON.Quaternion(); qX.setFromEuler(slope, 0, 0);
+                const qY = new CANNON.Quaternion(); qY.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), angle);
                 wallBody.quaternion = qY.mult(qX);
-                wallBody.position.set(
-                    r_center * Math.sin(angle),
-                    y_center,
-                    r_center * Math.cos(angle)
-                );
-                
+                wallBody.position.set(Math.sin(angle) * 14, wall_height / 2, Math.cos(angle) * 14);
                 targetWorld.addBody(wallBody);
             }
         }
-        createPhysicalBowl(world, defaultMat);
+        createPhysicalBowl(world, mainDefaultMat);
 
-        // --- サイコロの構築 ---
-        const characters = ['に', 'い', 'み', 'と', 'も', 'や'];
-        const charOrder = { 'に': 1, 'い': 2, 'み': 3, 'と': 4, 'も': 5, 'や': 6 };
+        // --- サイコロ ---
+        const characters = ['に', 'も', 'い', 'や', 'み', 'と'];
+        const charOrder = { 'に': 1, 'も': 2, 'い': 3, 'や': 4, 'み': 5, 'と': 6 };
 
         function createDiceTexture(char) {
             const canvas = document.createElement('canvas');
             canvas.width = 256; canvas.height = 256;
             const ctx = canvas.getContext('2d');
-            
-            ctx.fillStyle = '#f0f0f0';
+            ctx.fillStyle = '#fefefe';
             ctx.fillRect(0, 0, 256, 256);
-            ctx.lineWidth = 15;
-            ctx.strokeStyle = '#cccccc';
-            ctx.strokeRect(0, 0, 256, 256);
-
-            ctx.fillStyle = char === 'に' ? '#cc0000' : '#111111';
-            ctx.font = 'bold 150px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(char, 128, 128 + 10);
-
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-            return texture;
+            ctx.lineWidth = 15; ctx.strokeStyle = '#ddd'; ctx.strokeRect(0, 0, 256, 256);
+            ctx.fillStyle = char === 'に' ? '#cc0000' : '#1a1a1a';
+            ctx.font = 'bold 160px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(char, 128, 138);
+            return new THREE.CanvasTexture(canvas);
         }
 
         const baseDiceMaterials = characters.map(char => {
@@ -313,222 +299,157 @@
         });
 
         const diceList = [];
-        const diceSize = 1.8; 
+        const diceSize = 1.35;
         const diceGeo = new THREE.BoxGeometry(diceSize, diceSize, diceSize);
-        const diceShape = new CANNON.Box(new CANNON.Vec3(diceSize / 2, diceSize / 2, diceSize / 2));
+        const diceShape = new CANNON.Box(new CANNON.Vec3(diceSize/2, diceSize/2, diceSize/2));
 
         for (let i = 0; i < 6; i++) {
             const initialMats = [...baseDiceMaterials].sort(() => Math.random() - 0.5);
             const mesh = new THREE.Mesh(diceGeo, initialMats);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
+            mesh.castShadow = mesh.receiveShadow = true;
             scene.add(mesh);
-
-            const body = new CANNON.Body({
-                mass: 2,
-                shape: diceShape,
-                material: defaultMat
-            });
-            body.angularDamping = 0.1;
-            
-            // 初期の配置：器の中にばらけさせて自然落下させる
-            body.position.set(
-                (Math.random() - 0.5) * 4,
-                2 + i * 1.2,
-                (Math.random() - 0.5) * 4
-            );
-            body.quaternion.setFromEuler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-            
+            const body = new CANNON.Body({ mass: 2, shape: diceShape, material: mainDefaultMat });
+            body.angularDamping = 0.2;
+            body.position.set((Math.random()-0.5)*4, 2 + i*1.2, (Math.random()-0.5)*4);
+            body.quaternion.setFromEuler(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
             world.addBody(body);
-
             diceList.push({ mesh, body, isHeld: false });
         }
 
-        // --- ゲーム進行のフラグとUI要素 ---
-        let isEngineLoaded = false;
-        let isGameStarted = false;
-        let isRolling = false;
-        let resultEvaluated = true; // 初回は判定をスキップする
-        
-        const titleScreenEl = document.getElementById('titleScreen');
-        const resultTextEl = document.getElementById('resultText');
-        const uiEl = document.getElementById('ui');
+        // --- ゲーム管理 ---
+        let isEngineLoaded = false, isGameStarted = false, isRolling = false, resultEvaluated = true, rollCount = 0;
+        const titleScreenEl = document.getElementById('titleScreen'), resultTextEl = document.getElementById('resultText'), uiEl = document.getElementById('ui');
 
-        // Enterキーでゲーム開始
-// 任意のキー、マウスクリック、スマホのタップでゲーム開始
         function startGame() {
             if (isEngineLoaded && !isGameStarted) {
                 isGameStarted = true;
                 titleScreenEl.style.opacity = '0';
-                
-                setTimeout(() => {
-                    titleScreenEl.style.display = 'none';
-                    uiEl.style.display = 'block';
-                }, 500);
+                setTimeout(() => { titleScreenEl.style.display = 'none'; uiEl.style.display = 'block'; }, 500);
             }
         }
         window.addEventListener('keydown', startGame);
-        window.addEventListener('mousedown', startGame);
-        window.addEventListener('touchstart', startGame);
+        window.addEventListener('pointerdown', (e) => { if(titleScreenEl.style.display !== 'none') startGame(); });
 
-        // サイコロを振る処理（ランダムオンリー）
         function rollDice() {
-            if (!isGameStarted) return;
-            
-            isRolling = true;
-            resultEvaluated = false;
-            resultTextEl.className = ''; // 以前の表示を消す
+            if (!isGameStarted || isRolling) return;
+            isRolling = true; resultEvaluated = false; rollCount++;
+            resultTextEl.className = '';
 
-            diceList.forEach((dice, index) => {
-                if (!dice.isHeld) {
-                    // 通常のランダム再構築
-                    dice.mesh.material = [...baseDiceMaterials].sort(() => Math.random() - 0.5);
-
-                    // 初期位置へリセットし、力を加える
-                    dice.body.position.set(
-                        (Math.random() - 0.5) * 6,
-                        4 + Math.random() * 2 + index * 1,
-                        (Math.random() - 0.5) * 6
-                    );
-                    dice.body.velocity.set(0, 0, 0);
-                    dice.body.angularVelocity.set(
-                        (Math.random() - 0.5) * 20,
-                        (Math.random() - 0.5) * 20,
-                        (Math.random() - 0.5) * 20
-                    );
-                    
-                    const impulse = new CANNON.Vec3(
-                        (Math.random() - 0.5) * 5,
-                        -10,
-                        (Math.random() - 0.5) * 5
-                    );
-                    dice.body.applyImpulse(impulse, new CANNON.Vec3(0, 0, 0));
-                }
-            });
-        }
-
-        document.getElementById('rollBtn').addEventListener('click', rollDice);
-
-        // --- 出目判定とホールド機能 ---
-        function getTopFaceMaterialIndex(mesh) {
-            const up = new THREE.Vector3(0, 1, 0);
-            const matrix = new THREE.Matrix4().extractRotation(mesh.matrixWorld);
-            const normals = [
-                new THREE.Vector3(1, 0, 0),
-                new THREE.Vector3(-1, 0, 0),
-                new THREE.Vector3(0, 1, 0),
-                new THREE.Vector3(0, -1, 0),
-                new THREE.Vector3(0, 0, 1),
-                new THREE.Vector3(0, 0, -1)
-            ].map(v => v.applyMatrix4(matrix));
-
-            let maxDot = -Infinity;
-            let topIndex = -1;
-            for (let i = 0; i < 6; i++) {
-                const dot = up.dot(normals[i]);
-                if (dot > maxDot) {
-                    maxDot = dot;
-                    topIndex = i;
-                }
-            }
-            return topIndex;
-        }
-
-        function evaluateResult() {
-            const resultSet = new Set();
-            const resultChars = [];
-
-            diceList.forEach(dice => {
-                const topFaceIndex = getTopFaceMaterialIndex(dice.mesh);
-                const mat = dice.mesh.material[topFaceIndex];
-                resultSet.add(mat.uuid);
-                resultChars.push(mat.userData.char);
-            });
-
-            // "にいみともや" の順にソート
-            resultChars.sort((a, b) => charOrder[a] - charOrder[b]);
-            resultTextEl.innerText = resultChars.join('');
-
-            // すべて異なるマテリアルならジャックポット
-            if (resultSet.size === 6) {
-                resultTextEl.classList.add('show-jackpot');
+            // 8回目ジャックポット予測
+            let predictedFaces = [], availableChars = [...characters];
+            if (rollCount === 8) {
+                diceList.forEach(d => {
+                    if (d.isHeld) {
+                        const char = d.mesh.material[getTopIndex(d.mesh)].userData.char;
+                        const idx = availableChars.indexOf(char);
+                        if (idx !== -1) availableChars.splice(idx, 1);
+                    }
+                });
+                availableChars.sort(() => Math.random() - 0.5);
+                const pWorld = new CANNON.World();
+                const pMat = setupPhysicsWorld(pWorld);
+                createPhysicalBowl(pWorld, pMat);
+                const pBodies = diceList.map((d, index) => {
+                    const b = new CANNON.Body({ mass: 2, shape: diceShape, material: pMat });
+                    if(!d.isHeld) {
+                        b.position.set((Math.random()-0.5)*6, 8+index*2, (Math.random()-0.5)*6);
+                        b.quaternion.setFromEuler(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+                        b.angularVelocity.set((Math.random()-0.5)*20, (Math.random()-0.5)*20, (Math.random()-0.5)*20);
+                        b.applyImpulse(new CANNON.Vec3((Math.random()-0.5)*5, -12, (Math.random()-0.5)*5), new CANNON.Vec3(0,0,0));
+                    } else {
+                        b.position.copy(d.body.position); b.quaternion.copy(d.body.quaternion);
+                    }
+                    pWorld.addBody(b); return b;
+                });
+                for(let i=0; i<360; i++) pWorld.step(1/60);
+                predictedFaces = pBodies.map(b => {
+                    const up = new CANNON.Vec3(0, 1, 0);
+                    let maxD = -Infinity, top = -1;
+                    const normals = [new CANNON.Vec3(1,0,0), new CANNON.Vec3(-1,0,0), new CANNON.Vec3(0,1,0), new CANNON.Vec3(0,-1,0), new CANNON.Vec3(0,0,1), new CANNON.Vec3(0,0,-1)];
+                    normals.forEach((n, idx) => {
+                        const wn = new CANNON.Vec3(); b.quaternion.vmult(n, wn);
+                        const d = wn.dot(up); if(d > maxD){ maxD = d; top = idx; }
+                    });
+                    return top;
+                });
+                
+                diceList.forEach((dice, index) => {
+                    if(!dice.isHeld) {
+                        const target = availableChars.pop() || characters[0];
+                        const newMats = [];
+                        for(let f=0; f<6; f++) {
+                            newMats.push(f === predictedFaces[index] ? baseDiceMaterials.find(m=>m.userData.char===target) : baseDiceMaterials[Math.floor(Math.random()*6)]);
+                        }
+                        dice.mesh.material = newMats;
+                        dice.body.position.copy(pBodies[index].position);
+                        dice.body.quaternion.copy(pBodies[index].quaternion);
+                        dice.body.velocity.copy(pBodies[index].velocity);
+                        dice.body.angularVelocity.copy(pBodies[index].angularVelocity);
+                    }
+                });
             } else {
-                resultTextEl.classList.add('show-gray');
+                diceList.forEach((dice, index) => {
+                    if (!dice.isHeld) {
+                        dice.mesh.material = [...baseDiceMaterials].sort(() => Math.random() - 0.5);
+                        dice.body.position.set((Math.random()-0.5)*6, 8+index*2, (Math.random()-0.5)*6);
+                        dice.body.velocity.set(0,0,0);
+                        dice.body.angularVelocity.set((Math.random()-0.5)*20, (Math.random()-0.5)*20, (Math.random()-0.5)*20);
+                        dice.body.applyImpulse(new CANNON.Vec3((Math.random()-0.5)*5, -12, (Math.random()-0.5)*5), new CANNON.Vec3(0,0,0));
+                    }
+                });
             }
-            
+        }
+        document.getElementById('rollBtn').addEventListener('pointerdown', rollDice);
+
+        function getTopIndex(mesh) {
+            const up = new THREE.Vector3(0, 1, 0), matrix = new THREE.Matrix4().extractRotation(mesh.matrixWorld);
+            const normals = [new THREE.Vector3(1,0,0), new THREE.Vector3(-1,0,0), new THREE.Vector3(0,1,0), new THREE.Vector3(0,-1,0), new THREE.Vector3(0,0,1), new THREE.Vector3(0,0,-1)].map(v => v.applyMatrix4(matrix));
+            let maxD = -Infinity, top = -1;
+            normals.forEach((n, i) => { const d = up.dot(n); if(d > maxD){ maxD = d; top = i; } });
+            return top;
+        }
+
+        function evaluate() {
+            const results = [], resultSet = new Set();
+            diceList.forEach(d => {
+                const idx = getTopIndex(d.mesh), mat = d.mesh.material[idx];
+                resultSet.add(mat.uuid); results.push(mat.userData.char);
+            });
+            results.sort((a,b) => charOrder[a] - charOrder[b]);
+            resultTextEl.innerText = results.join('');
+            resultTextEl.className = (resultSet.size === 6) ? 'show-jackpot' : 'show-gray';
             resultEvaluated = true;
         }
 
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-
-        window.addEventListener('pointerdown', (event) => {
-            if (!isGameStarted || event.target.id === 'rollBtn') return;
-
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
+        window.addEventListener('pointerdown', (e) => {
+            if (!isGameStarted || e.target.id === 'rollBtn') return;
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
-
             const intersects = raycaster.intersectObjects(diceList.map(d => d.mesh));
-
             if (intersects.length > 0) {
-                const clickedMesh = intersects[0].object;
-                const dice = diceList.find(d => d.mesh === clickedMesh);
-                
-                dice.isHeld = !dice.isHeld;
-                
-                if (dice.isHeld) {
-                    dice.mesh.material.forEach(m => m.emissive.setHex(0x555500));
-                } else {
-                    dice.mesh.material.forEach(m => m.emissive.setHex(0x000000));
-                }
+                const d = diceList.find(dice => dice.mesh === intersects[0].object);
+                d.isHeld = !d.isHeld;
+                d.mesh.material.forEach(m => m.emissive.setHex(d.isHeld ? 0x444400 : 0x000000));
             }
         });
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        // --- メインループ ---
         const timeStep = 1 / 60;
-        let lastCallTime = performance.now();
-        
-        // ロード完了処理
+        let lastTime = performance.now(), accumulator = 0;
         document.getElementById('loading').style.display = 'none';
-        titleScreenEl.style.display = 'flex'; // タイトル画面を表示
-        isEngineLoaded = true;
-        
-        // 初期状態ではサイコロは振らず、器の中に落下して静止するのを待つだけ
+        titleScreenEl.style.display = 'flex'; isEngineLoaded = true;
 
         function animate(time) {
             requestAnimationFrame(animate);
-            
-            const deltaTime = (time - lastCallTime) / 1000;
-            lastCallTime = time;
-            
-            world.step(timeStep, deltaTime, 3);
-
+            const dt = Math.min((time - lastTime) / 1000, 0.1);
+            lastTime = time; accumulator += dt;
+            while (accumulator >= timeStep) { world.step(timeStep); accumulator -= timeStep; }
             let allStopped = true;
-
-            diceList.forEach(dice => {
-                if (!dice.isHeld || dice.body.velocity.lengthSquared() > 0.05) {
-                    dice.mesh.position.copy(dice.body.position);
-                    dice.mesh.quaternion.copy(dice.body.quaternion);
-                }
-
-                if (dice.body.velocity.lengthSquared() > 0.02 || dice.body.angularVelocity.lengthSquared() > 0.02) {
-                    allStopped = false;
-                }
+            diceList.forEach(d => {
+                d.mesh.position.copy(d.body.position); d.mesh.quaternion.copy(d.body.quaternion);
+                if (d.body.velocity.lengthSquared() > 0.05 || d.body.angularVelocity.lengthSquared() > 0.05) allStopped = false;
             });
-
-            // 振られている途中で、すべてが静止したら結果を表示
-            if (isRolling && allStopped && !resultEvaluated) {
-                isRolling = false;
-                evaluateResult();
-            }
-
+            if (isRolling && allStopped && !resultEvaluated) { isRolling = false; evaluate(); }
             renderer.render(scene, camera);
         }
         requestAnimationFrame(animate);
